@@ -2,34 +2,52 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-const dotenv = require('dotenv');
-
-// .env 파일 로드
-dotenv.config();
-
-// 모델 불러오기
-const Locker = require('./models/Locker');
-const CancelledMember = require('./models/CancelledMember');
+require('dotenv').config();
 
 const app = express();
 
-// 미들웨어 설정
+// 미들웨어
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../frontend')));
+
+// 정적 파일 제공
+app.use('/', express.static(path.join(__dirname, '../frontend')));
+app.use('/styles', express.static(path.join(__dirname, '../frontend/styles')));
+app.use('/images', express.static(path.join(__dirname, '../frontend/images')));
 
 // MongoDB 연결
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/locker-system')
-    .then(() => {
-        console.log('MongoDB 연결 성공');
-        initializeLockers();
-    })
-    .catch(err => {
-        console.error('MongoDB 연결 실패:', err);
-    });
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => {
+    console.log('MongoDB 연결 성공');
+}).catch((err) => {
+    console.error('MongoDB 연결 실패:', err);
+});
 
-// API 라우트
-// 모든 락커 정보 가져오기
+// 락커 스키마
+const lockerSchema = new mongoose.Schema({
+    number: { type: Number, required: true, unique: true },
+    memberName: String,
+    phone: String,
+    membershipType: String,
+    expirationDate: Date,
+    isActive: { type: Boolean, default: true }
+});
+
+const Locker = mongoose.model('Locker', lockerSchema);
+
+// 해지된 회원 스키마
+const cancelledMemberSchema = new mongoose.Schema({
+    memberName: String,
+    phone: String,
+    lockerNumber: Number,
+    cancellationDate: { type: Date, default: Date.now }
+});
+
+const CancelledMember = mongoose.model('CancelledMember', cancelledMemberSchema);
+
+// API 엔드포인트
 app.get('/api/lockers', async (req, res) => {
     try {
         const lockers = await Locker.find().sort({ number: 1 });
@@ -39,86 +57,57 @@ app.get('/api/lockers', async (req, res) => {
     }
 });
 
-// 락커 정보 업데이트
 app.put('/api/lockers/:number', async (req, res) => {
     try {
         const locker = await Locker.findOneAndUpdate(
-            { number: parseInt(req.params.number) },
-            req.body,
+            { number: req.params.number },
+            { ...req.body, isActive: true },
             { new: true, upsert: true }
         );
         res.json(locker);
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(500).json({ message: error.message });
     }
 });
 
-// 락커 해지
 app.post('/api/lockers/:number/cancel', async (req, res) => {
     try {
-        const locker = await Locker.findOne({ number: parseInt(req.params.number) });
-        if (!locker) {
-            return res.status(404).json({ message: '락커를 찾을 수 없습니다.' });
+        const locker = await Locker.findOne({ number: req.params.number });
+        if (!locker || !locker.memberName) {
+            return res.status(404).json({ message: '락커를 찾을 수 없거나 비어있습니다.' });
         }
 
-        // 해지 회원 정보 저장
-        const cancelledMember = new CancelledMember({
+        await CancelledMember.create({
             memberName: locker.memberName,
             phone: locker.phone,
-            previousLockerNumber: locker.number,
-            cancellationDate: new Date()
+            lockerNumber: locker.number
         });
-        await cancelledMember.save();
-        console.log('해지 회원 저장됨:', cancelledMember);
 
-        // 락커 정보 초기화
-        locker.memberName = '';
-        locker.phone = '';
-        locker.membershipType = 'regular';
+        locker.memberName = null;
+        locker.phone = null;
+        locker.membershipType = null;
         locker.expirationDate = null;
-        locker.isCancelled = true;
         await locker.save();
 
-        res.json({ message: '성공적으로 해지되었습니다.' });
+        res.json({ message: '해지 처리가 완료되었습니다.' });
     } catch (error) {
-        console.error('해지 처리 중 오류:', error);
         res.status(500).json({ message: error.message });
     }
 });
 
-// 해지된 회원 목록 가져오기
 app.get('/api/cancelled-members', async (req, res) => {
     try {
-        const members = await CancelledMember.find().sort({ cancellationDate: -1 });
-        res.json(members || []);
+        const members = await CancelledMember.find()
+            .sort({ cancellationDate: -1 })
+            .limit(50);
+        res.json(members);
     } catch (error) {
-        console.error('해지 회원 목록 조회 중 오류:', error);
         res.status(500).json({ message: error.message });
     }
 });
 
-// 초기 387개 락커 생성
-async function initializeLockers() {
-    try {
-        // 기존 데이터 모두 삭제
-        await Locker.deleteMany({});
-        
-        // 387개 락커 새로 생성
-        const lockers = Array.from({ length: 387 }, (_, i) => ({
-            number: i + 1,
-            memberName: '',
-            phone: '',
-            membershipType: 'regular'
-        }));
-        await Locker.insertMany(lockers);
-        console.log('387개 락커 초기화 완료');
-    } catch (error) {
-        console.error('락커 초기화 실패:', error);
-    }
-}
-
-// 메인 페이지 라우트
-app.get('/', (req, res) => {
+// 모든 다른 요청은 index.html로
+app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
