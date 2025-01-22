@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhiteGym Locker Management</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="/styles/output.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -34,415 +34,306 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         .member-name {
+            word-break: keep-all;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 100%;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
         }
         .side-panel {
-            transition: transform 0.3s ease-in-out;
             transform: translateX(100%);
-            background: white;
-            box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease-in-out;
         }
         .side-panel.active {
             transform: translateX(0);
         }
-        .toggle-button {
-            position: fixed;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 50;
-            transition: all 0.3s ease;
-        }
-        .toggle-button:hover {
-            background-color: #4b5563 !important;
-        }
-        .empty-locker {
-            background-color: #f5f5f5;
-            border: 1px dashed #e5e7eb;
-        }
-        .empty-locker:hover {
-            background-color: #eeeeee;
-        }
-        .pagination-button {
-            padding: 0.5rem 1rem;
-            margin: 0 0.25rem;
-            border-radius: 0.5rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .pagination-button.active {
-            background-color: #2563eb;
-            color: white;
-            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
-        }
-        .pagination-button:not(.active) {
-            background-color: #f3f4f6;
-            color: #4b5563;
-        }
-        .pagination-button:not(.active):hover {
-            background-color: #e5e7eb;
-        }
-        .locker-grid {
-            height: calc(100vh - 180px);
-            overflow: hidden;
-        }
-        .page-content {
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        .page-content.active {
-            opacity: 1;
-        }
-        .logo-img {
-            height: 30px;
-            margin-right: 12px;
-        }
     </style>
 </head>
-<body>
-    <!-- 네비게이션 바 -->
-    <nav class="bg-white shadow-sm fixed top-0 w-full z-10">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <img src="/images/whitegym-logo.png" alt="WhiteGym Logo" class="logo-img">
-                    <h1 class="text-2xl font-bold text-gray-800">WhiteGym Locker Management</h1>
-                </div>
-                <div class="flex space-x-2" id="paginationContainer">
-                    <!-- Pagination buttons will be added here -->
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- 토글 버튼 -->
-    <button id="togglePanel" class="toggle-button bg-gray-500 text-white px-4 py-3 rounded-l-lg">
-        해지<br>목록
-    </button>
-
-    <!-- 메인 컨테이너 -->
-    <div class="max-w-7xl mx-auto pt-20 px-4 pb-8">
-        <!-- 페이지 표시 -->
-        <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
-            <h2 class="text-xl font-bold text-gray-800" id="pageIndicator"></h2>
-        </div>
-        
-        <!-- 락커 그리드 -->
-        <div class="bg-white rounded-lg shadow-sm p-6 locker-grid">
-            <div class="grid grid-cols-10 gap-4" id="lockerContainer">
-                <!-- Lockers will be generated here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- 해지 회원 패널 -->
-    <div id="cancelledPanel" class="side-panel fixed top-0 right-0 h-full w-96 z-50 p-6 bg-white">
-        <!-- 닫기 버튼 추가 -->
-        <button id="closeCancelledPanel" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
-        
-        <h2 class="text-xl font-bold mb-6 text-gray-800">해지 회원 목록</h2>
-        <div id="cancelledMembers" class="space-y-3 overflow-y-auto" style="max-height: calc(100vh - 120px);">
-            <!-- Cancelled members will be added here -->
-        </div>
-    </div>
-
-    <!-- Modal -->
-    <div id="lockerModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-50 z-50">
-        <div class="bg-white rounded-lg shadow-lg w-96 relative p-6">
-            <button id="cancelMembership" class="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors">
-                해지
+<body class="p-4">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">WhiteGym Locker</h1>
+            <button onclick="showCancelledMembers()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                해지 회원 목록
             </button>
-            <h2 class="text-xl font-bold mb-6 text-gray-800">락커 정보</h2>
+        </div>
+
+        <div id="lockerGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-9 gap-2">
+            <!-- 락커들이 여기에 동적으로 추가됩니다 -->
+        </div>
+    </div>
+
+    <!-- 락커 정보 입력 모달 -->
+    <div id="lockerModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 class="text-xl font-bold mb-4">락커 정보 입력</h2>
             <form id="lockerForm" class="space-y-4">
+                <input type="hidden" id="lockerNumber">
                 <div>
-                    <label class="block text-gray-700 mb-2">이름</label>
-                    <input type="text" id="memberName" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    <label class="block text-sm font-medium text-gray-700">회원 이름</label>
+                    <input type="text" id="memberName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-2">전화번호</label>
-                    <input type="tel" id="phone" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    <label class="block text-sm font-medium text-gray-700">전화번호</label>
+                    <input type="tel" id="phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
                 <div>
-                    <label class="block text-gray-700 mb-2">회원권 종류</label>
-                    <select id="membershipType" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="regular">일반 회원권</option>
+                    <label class="block text-sm font-medium text-gray-700">이용권 종류</label>
+                    <select id="membershipType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="1month">1개월</option>
+                        <option value="3months">3개월</option>
+                        <option value="6months">6개월</option>
+                        <option value="12months">12개월</option>
                         <option value="subscription">구독권</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-gray-700 mb-2">만료일</label>
-                    <input type="date" id="remainingDays" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                </div>
-                <div class="flex justify-end space-x-3 pt-4">
-                    <button type="button" id="cancelButton" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                         취소
                     </button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                         저장
                     </button>
                 </div>
             </form>
         </div>
     </div>
-    <script>
-        let currentPage = 1;
-        const lockersPerPage = 100;
-        const totalPages = Math.ceil(387 / lockersPerPage);
 
-        // API 호출 함수들
+    <!-- 해지 회원 목록 모달 -->
+    <div id="cancelledMembersModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">해지 회원 목록</h2>
+                <button onclick="closeCancelledMembersModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">회원 이름</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">전화번호</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">락커 번호</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">해지 일자</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cancelledMembersTable" class="bg-white divide-y divide-gray-200">
+                        <!-- 해지 회원 목록이 여기에 동적으로 추가됩니다 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let lockers = [];
+
+        // 락커 데이터 가져오기
         async function fetchLockers() {
-            const response = await fetch('/api/lockers');
-            return await response.json();
+            try {
+                const response = await fetch('/api/lockers');
+                lockers = await response.json();
+                renderLockers();
+            } catch (error) {
+                console.error('락커 데이터 가져오기 실패:', error);
+            }
         }
 
-        async function updateLocker(number, data) {
+        // 락커 그리드 렌더링
+        function renderLockers() {
+            const grid = document.getElementById('lockerGrid');
+            grid.innerHTML = '';
+
+            for (let i = 1; i <= 387; i++) {
+                const locker = lockers.find(l => l.number === i) || { number: i, isActive: true };
+                const div = document.createElement('div');
+                div.className = `locker rounded-lg p-2 cursor-pointer ${
+                    locker.memberName ? 'bg-blue-500 text-white' : 'bg-gray-100'
+                }`;
+                div.onclick = () => showLockerModal(locker);
+
+                const content = locker.memberName ? `
+                    <div class="h-full flex flex-col justify-between">
+                        <div class="text-sm font-medium member-name">${locker.memberName}</div>
+                        <div class="text-xs opacity-75">${formatDate(locker.expirationDate)}</div>
+                    </div>
+                ` : `
+                    <div class="h-full flex items-center justify-center text-gray-500">
+                        ${i}
+                    </div>
+                `;
+
+                div.innerHTML = content;
+                grid.appendChild(div);
+            }
+        }
+
+        // 날짜 포맷팅
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        // 락커 모달 표시
+        function showLockerModal(locker) {
+            const modal = document.getElementById('lockerModal');
+            const form = document.getElementById('lockerForm');
+            const numberInput = document.getElementById('lockerNumber');
+            const nameInput = document.getElementById('memberName');
+            const phoneInput = document.getElementById('phone');
+            const typeInput = document.getElementById('membershipType');
+
+            numberInput.value = locker.number;
+            nameInput.value = locker.memberName || '';
+            phoneInput.value = locker.phone || '';
+            typeInput.value = locker.membershipType || '1month';
+
+            modal.classList.add('active');
+
+            if (locker.memberName) {
+                const cancelButton = document.createElement('button');
+                cancelButton.type = 'button';
+                cancelButton.className = 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors';
+                cancelButton.textContent = '해지';
+                cancelButton.onclick = () => cancelMembership(locker.number);
+                
+                const buttonContainer = form.querySelector('.flex');
+                if (!buttonContainer.querySelector('button[onclick^="cancelMembership"]')) {
+                    buttonContainer.insertBefore(cancelButton, buttonContainer.firstChild);
+                }
+            }
+        }
+
+        // 모달 닫기
+        function closeModal() {
+            const modal = document.getElementById('lockerModal');
+            modal.classList.remove('active');
+            const form = document.getElementById('lockerForm');
+            const buttonContainer = form.querySelector('.flex');
+            const cancelButton = buttonContainer.querySelector('button[onclick^="cancelMembership"]');
+            if (cancelButton) {
+                cancelButton.remove();
+            }
+        }
+
+        // 락커 정보 저장
+        async function saveMembership(event) {
+            event.preventDefault();
+            
+            const number = parseInt(document.getElementById('lockerNumber').value);
+            const memberName = document.getElementById('memberName').value;
+            const phone = document.getElementById('phone').value;
+            const membershipType = document.getElementById('membershipType').value;
+
+            if (!memberName || !phone) {
+                alert('모든 필드를 입력해주세요.');
+                return;
+            }
+
+            const expirationDate = new Date();
+            switch (membershipType) {
+                case '1month':
+                    expirationDate.setMonth(expirationDate.getMonth() + 1);
+                    break;
+                case '3months':
+                    expirationDate.setMonth(expirationDate.getMonth() + 3);
+                    break;
+                case '6months':
+                    expirationDate.setMonth(expirationDate.getMonth() + 6);
+                    break;
+                case '12months':
+                    expirationDate.setMonth(expirationDate.getMonth() + 12);
+                    break;
+                case 'subscription':
+                    expirationDate.setMonth(expirationDate.getMonth() + 1);
+                    break;
+            }
+
             try {
                 const response = await fetch(`/api/lockers/${number}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(data)
-                });
-                
-                if (!response.ok) {
-                    throw new Error('서버 응답 오류');
-                }
-                
-                return await response.json();
-            } catch (error) {
-                console.error('업데이트 중 오류:', error);
-                throw error;
-            }
-        }
-
-        async function fetchCancelledMembers() {
-            const response = await fetch('/api/cancelled-members');
-            return await response.json();
-        }
-
-        // 페이지네이션 버튼 생성
-        function createPaginationButtons() {
-            const container = document.getElementById('paginationContainer');
-            container.innerHTML = '';
-            
-            for (let i = 1; i <= totalPages; i++) {
-                const button = document.createElement('button');
-                button.className = `pagination-button ${i === currentPage ? 'active' : ''}`;
-                button.textContent = `${i}페이지`;
-                button.onclick = () => changePage(i);
-                container.appendChild(button);
-            }
-        }
-
-        // 페이지 표시기 업데이트
-        function updatePageIndicator() {
-            const start = (currentPage - 1) * lockersPerPage + 1;
-            const end = Math.min(currentPage * lockersPerPage, 387);
-            document.getElementById('pageIndicator').innerHTML = 
-                `<span class="text-blue-600">${currentPage}페이지</span> <span class="text-gray-600">(${start}~${end}번 락커)</span>`;
-        }
-
-        // 페이지 변경
-        async function changePage(page) {
-            const container = document.getElementById('lockerContainer');
-            container.style.opacity = '0';
-            
-            setTimeout(async () => {
-                currentPage = page;
-                createPaginationButtons();
-                updatePageIndicator();
-                await renderLockers();
-                container.style.opacity = '1';
-            }, 300);
-        }
-
-        // 락커 그리드 렌더링
-        async function renderLockers() {
-            const lockers = await fetchLockers();
-            const container = document.getElementById('lockerContainer');
-            container.innerHTML = '';
-
-            const start = (currentPage - 1) * lockersPerPage;
-            const end = Math.min(currentPage * lockersPerPage, 387);
-
-            for (let i = start; i < end; i++) {
-                const number = i + 1;
-                const locker = lockers.find(l => l.number === number) || { number };
-                const button = document.createElement('button');
-                
-                const baseClass = locker.memberName ? 
-                    (locker.membershipType === 'subscription' ? 'gradient-bg' : 'bg-blue-600') : 
-                    'empty-locker';
-                
-                button.className = `locker ${baseClass} rounded-lg flex flex-col items-center justify-center relative group`;
-                button.setAttribute('data-number', number);
-                
-                const textColorClass = locker.memberName ? 'text-white' : 'text-gray-500';
-                
-                button.innerHTML = `
-                    <span class="absolute top-2 left-2 text-lg font-bold ${textColorClass}">${number}</span>
-                    <div class="flex flex-col items-center justify-center w-full p-2">
-                        <span class="text-base font-bold member-name ${textColorClass} text-center">
-                            ${locker.memberName || '비어있음'}
-                        </span>
-                        <span class="text-sm ${textColorClass} mt-1">
-                            ${locker.expirationDate ? formatRemainingDays(locker.expirationDate) : ''}
-                        </span>
-                    </div>
-                `;
-                
-                button.onclick = () => selectLocker(number);
-                container.appendChild(button);
-            }
-        }
-
-        // 해지 회원 목록 렌더링
-        async function renderCancelledMembers() {
-            try {
-                const members = await fetchCancelledMembers();
-                const container = document.getElementById('cancelledMembers');
-                container.innerHTML = '';
-
-                if (Array.isArray(members)) {
-                    members.forEach(member => {
-                        const div = document.createElement('div');
-                        div.className = 'p-4 bg-gray-50 rounded-lg border border-gray-200';
-                        div.innerHTML = `
-                            <p class="font-bold text-gray-800">${member.memberName}</p>
-                            <p class="text-sm text-gray-600">${member.phone}</p>
-                            <p class="text-sm text-gray-500 mt-1">
-                                해지일: ${new Date(member.cancellationDate).toLocaleDateString()}
-                            </p>
-                        `;
-                        container.appendChild(div);
-                    });
-                }
-            } catch (error) {
-                console.error('해지 회원 목록 로딩 중 오류:', error);
-            }
-        }
-
-        let selectedLockerNumber = null;
-
-        // 락커 선택
-        async function selectLocker(number) {
-            selectedLockerNumber = number;
-            const lockers = await fetchLockers();
-            const locker = lockers.find(l => l.number === number) || {};
-            
-            document.getElementById('lockerModal').classList.add('active');
-            document.getElementById('cancelMembership').style.display = locker.memberName ? 'block' : 'none';
-            
-            document.getElementById('memberName').value = locker.memberName || '';
-            document.getElementById('phone').value = locker.phone || '';
-            document.getElementById('membershipType').value = locker.membershipType || 'regular';
-            document.getElementById('remainingDays').value = locker.expirationDate ? 
-                locker.expirationDate.split('T')[0] : calculateExpirationDate('regular');
-        }
-
-        // 이벤트 리스너들
-        document.getElementById('togglePanel').addEventListener('click', () => {
-            document.getElementById('cancelledPanel').classList.toggle('active');
-            renderCancelledMembers();
-        });
-
-        // 해지 목록 닫기 버튼 이벤트 리스너 추가
-        document.getElementById('closeCancelledPanel').addEventListener('click', () => {
-            document.getElementById('cancelledPanel').classList.remove('active');
-        });
-
-        document.getElementById('membershipType').addEventListener('change', (e) => {
-            const expirationDate = calculateExpirationDate(e.target.value);
-            document.getElementById('remainingDays').value = expirationDate;
-        });
-
-        document.getElementById('cancelMembership').addEventListener('click', async () => {
-            if (!selectedLockerNumber) return;
-            
-            try {
-                const confirmed = confirm('정말 해지하시겠습니까?');
-                if (confirmed) {
-                    const response = await fetch(`/api/lockers/${selectedLockerNumber}/cancel`, {
-                        method: 'POST'
-                    });
-                    
-                    if (!response.ok) throw new Error('서버 응답 오류');
-                    
-                    document.getElementById('lockerModal').classList.remove('active');
-                    await renderLockers();
-                    await renderCancelledMembers();
-                }
-            } catch (error) {
-                console.error('해지 처리 중 오류:', error);
-                alert('해지 처리 중 오류가 발생했습니다.');
-            }
-        });
-
-        document.getElementById('lockerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!selectedLockerNumber) return;
-
-            try {
-                const formData = {
-                    memberName: document.getElementById('memberName').value,
-                    phone: document.getElementById('phone').value,
-                    membershipType: document.getElementById('membershipType').value,
-                    expirationDate: document.getElementById('remainingDays').value
-                };
-
-                const response = await fetch(`/api/lockers/${selectedLockerNumber}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify({
+                        memberName,
+                        phone,
+                        membershipType,
+                        expirationDate
+                    }),
                 });
 
-                if (!response.ok) throw new Error('서버 응답 오류');
-
-                document.getElementById('lockerModal').classList.remove('active');
-                await renderLockers();
+                if (response.ok) {
+                    closeModal();
+                    fetchLockers();
+                } else {
+                    alert('저장 중 오류가 발생했습니다.');
+                }
             } catch (error) {
-                console.error('저장 중 오류:', error);
+                console.error('저장 실패:', error);
                 alert('저장 중 오류가 발생했습니다.');
             }
-        });
+        }
 
-        document.getElementById('cancelButton').addEventListener('click', () => {
-            document.getElementById('lockerModal').classList.remove('active');
-        });
+        // 회원권 해지
+        async function cancelMembership(number) {
+            if (!confirm('정말 해지하시겠습니까?')) return;
 
-        // 유틸리티 함수들
-        function calculateExpirationDate(membershipType) {
-            const today = new Date();
-            if (membershipType === 'subscription') {
-                today.setMonth(today.getMonth() + 1);
-            } else {
-                today.setFullYear(today.getFullYear() + 1);
+            try {
+                const response = await fetch(`/api/lockers/${number}/cancel`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    closeModal();
+                    fetchLockers();
+                } else {
+                    alert('해지 처리 중 오류가 발생했습니다.');
+                }
+            } catch (error) {
+                console.error('해지 처리 실패:', error);
+                alert('해지 처리 중 오류가 발생했습니다.');
             }
-            return today.toISOString().split('T')[0];
         }
 
-        function formatRemainingDays(dateString) {
-            const expirationDate = new Date(dateString);
-            const today = new Date();
-            const diffTime = expirationDate - today;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return `${diffDays}일 남음`;
+        // 해지 회원 목록 표시
+        async function showCancelledMembers() {
+            try {
+                const response = await fetch('/api/cancelled-members');
+                const members = await response.json();
+
+                const tbody = document.getElementById('cancelledMembersTable');
+                tbody.innerHTML = members.map(member => `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${member.memberName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${member.phone}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${member.lockerNumber}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDate(member.cancellationDate)}</td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('cancelledMembersModal').classList.add('active');
+            } catch (error) {
+                console.error('해지 회원 목록 가져오기 실패:', error);
+                alert('해지 회원 목록을 가져오는 중 오류가 발생했습니다.');
+            }
         }
 
-        // 초기화
-        createPaginationButtons();
-        updatePageIndicator();
-        renderLockers();
+        // 해지 회원 목록 모달 닫기
+        function closeCancelledMembersModal() {
+            document.getElementById('cancelledMembersModal').classList.remove('active');
+        }
+
+        // 이벤트 리스너 등록
+        document.getElementById('lockerForm').addEventListener('submit', saveMembership);
+
+        // 초기 데이터 로드
+        fetchLockers();
     </script>
 </body>
 </html>
